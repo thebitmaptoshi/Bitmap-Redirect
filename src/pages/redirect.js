@@ -1,3 +1,17 @@
+// Round-robin redirect sites for isBitmap = false
+const REDIRECT_SITES = [
+  'https://ordinals.com/content/',
+  'https://ordiscan.com/content/',
+  'https://static.unisat.io/preview/'
+];
+function getNextRedirectSite() {
+  let idx = parseInt(localStorage.getItem('obi_redirect_site_index') || '0', 10);
+  const site = REDIRECT_SITES[idx];
+  idx = (idx + 1) % REDIRECT_SITES.length;
+  localStorage.setItem('obi_redirect_site_index', idx.toString());
+  return site;
+}
+
 // Process the redirect - orchestrator using modular functions
 (async () => {
   const params = new URLSearchParams(window.location.search);
@@ -50,7 +64,9 @@
       if (result.isBitmap) {
         window.location.href = `https://ordinals.com/inscription/${result.inscriptionId}`;
       } else {
-        window.location.href = `https://ordinals.com/content/${result.inscriptionId}`;
+        // Use round robin for actual redirect sites
+        const site = getNextRedirectSite();
+        window.location.href = `${site}${result.inscriptionId}`;
       }
     } else {
       window.location.href = chrome.runtime.getURL(`src/pages/error.html?query=${encodeURIComponent(address)}&type=address`);
