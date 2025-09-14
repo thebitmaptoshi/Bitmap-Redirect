@@ -14,3 +14,4 @@ In alpha, only manually written in names from [BNS/Registry](https://github.com/
 Contact me if the dev email to plug you in manually, no BNS reinscriptions necessary for testing
 
 We assume no responsibility for any content displayed, we are merely distributing access.
+All redirects are brought to you thanks to Boppleton's OnChainIndex, up to the block sat-1 redirection
