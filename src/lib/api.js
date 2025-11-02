@@ -20,9 +20,9 @@ async function fetchGitHubFile(filename) {
 function getIndexFileForName(name) {
   const firstChar = name[0].toUpperCase();
   if (/\d/.test(firstChar)) {
-    return 'index_0-9.json';
+    return 'index_0-9.txt';
   }
-  return `index_${firstChar}.json`;
+  return `index_${firstChar}.txt`;
 }
 
 // Function to fetch and parse the index file for a name
@@ -32,51 +32,27 @@ async function fetchAddressForName(name, sanitizeQuery) {
   if (!text) return null;
 
   try {
-    // Parse JSON content
-    const jsonData = JSON.parse(text);
+    // Entries are (name,address), separated by commas
+    const entries = text.match(/\([^\)]+\)/g) || [];
     const sanitizedInput = sanitizeQuery(name);
     console.log('Sanitized input name:', sanitizedInput);
-    
-    // Check if jsonData is an array of objects with the new identifiers
-    if (Array.isArray(jsonData)) {
-      for (const entry of jsonData) {
-        // Look for entries with the new JSON identifiers: block, iD, Bitmap
-        const entryName = entry[JSON_IDENTIFIERS.BITMAP] || entry.name; // Fallback to 'name' if Bitmap field not found
-        const entryAddress = entry[JSON_IDENTIFIERS.ID] || entry[JSON_IDENTIFIERS.BLOCK] || entry.address; // Try iD first, then block, then fallback
-        
-        if (entryName && entryAddress) {
-          const sanitizedEntryName = sanitizeQuery(entryName.toString().trim());
-          console.log('Comparing:', {
-            entryName: entryName.toString().trim(),
-            sanitizedEntryName,
-            sanitizedInput
-          });
-          
-          if (sanitizedEntryName === sanitizedInput) {
-            console.log('Match found:', entryName, '->', entryAddress);
-            return entryAddress.toString().trim();
-          }
-        }
-      }
-    } else {
-      // Handle object format where keys are names
-      for (const [entryName, entryData] of Object.entries(jsonData)) {
-        const sanitizedEntryName = sanitizeQuery(entryName.trim());
-        console.log('Comparing:', {
-          entryName: entryName.trim(),
-          sanitizedEntryName,
-          sanitizedInput
-        });
-        
-        if (sanitizedEntryName === sanitizedInput) {
-          // Extract address from the entry data object
-          const entryAddress = entryData[JSON_IDENTIFIERS.ID] || entryData[JSON_IDENTIFIERS.BLOCK] || entryData.address || entryData;
-          console.log('Match found:', entryName, '->', entryAddress);
-          return entryAddress.toString().trim();
-        }
+    for (const entry of entries) {
+      const [entryName, entryAddress] = entry.slice(1, -1).split(',');
+      const sanitizedEntryName = sanitizeQuery(entryName ? entryName.trim() : '');
+      console.log('Comparing:', {
+        entryName: entryName ? entryName.trim() : '',
+        sanitizedEntryName,
+        sanitizedInput
+      });
+      if (
+        entryName &&
+        entryAddress &&
+        sanitizedEntryName === sanitizedInput
+      ) {
+        console.log('Match found:', entryName, '->', entryAddress);
+        return entryAddress.trim();
       }
     }
-    
     console.log('No match found for:', sanitizedInput);
     return null;
   } catch (e) {

@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Bitmap Re-direct",
-  "version": "1.4",
-  "description": "Redirects .bitmap URLs to ordinals content based on a JSON index of the 1st 907k bitmaps",
+  "version": "1.3",
+  "description": "Redirects .bitmap URLs to ordinals content based on an index of the 1st 907k bitmaps",
   "permissions": [
     "declarativeNetRequest",
     "declarativeNetRequestFeedback",
@@ -24,7 +24,9 @@
     {
       "resources": [
         "src/pages/error.html",
+        "src/pages/redirect.html",
         "src/pages/error.js",
+        "src/pages/redirect.js",
         "src/lib/constants.js",
         "src/lib/parser.js",
         "src/lib/api.js",

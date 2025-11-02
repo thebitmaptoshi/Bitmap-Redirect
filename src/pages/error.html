@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Bitmap Redirect</title>
+  <title>Bitmap Redirect Error</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     * {
@@ -68,51 +68,17 @@
       height: 100vh;
       width: 100vw;
     }
-    .loading {
-      display: block;
-    }
-    .error {
-      display: none;
-    }
-    .spinner {
-      border: 4px solid #f3f3f3;
-      border-top: 4px solid #3498db;
-      border-radius: 50%;
-      width: 40px;
-      height: 40px;
-      animation: spin 2s linear infinite;
-      margin: 20px auto;
-    }
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
   </style>
 </head>
 <body>
   <div class="center-vertical">
     <div class="container">
-      <!-- Loading state -->
-      <div id="loading-content" class="loading">
-        <h1>Redirecting...</h1>
-        <div class="spinner"></div>
-        <p>Looking up .bitmap address...</p>
-      </div>
-      
-      <!-- Error state -->
-      <div id="error-content" class="error">
-        <h1 id="error-title">Error: Name not found</h1>
-        <p id="error-message">Name not found for the provided .bitmap address.</p>
-        <p>Please check the input and try again. Ensure you enter the URL as <code>http://youraddress.bitmap</code> in the address bar.</p>
-      </div>
+      <h1 id="error-title">Error: Name not found</h1>
+      <p id="error-message">Name not found for the provided .bitmap address.</p>
+      <p>Please check the input and try again. Ensure you enter the URL as <code>http://youraddress.bitmap</code> in the address bar.</p>
     </div>
     <img class="bitmap-gif" src="https://memedepot.com/cdn-cgi/imagedelivery/naCPMwxXX46-hrE49eZovw/4394fcf0-dd82-4ab8-a30e-30e928eabb00/public" alt="Bitmap Meme GIF" />
   </div>
-  
-  <!-- Include all necessary scripts -->
-  <script src="../lib/constants.js"></script>
-  <script src="../lib/parser.js"></script>
-  <script src="../lib/api.js"></script>
   <script src="error.js"></script>
 </body>
 </html>

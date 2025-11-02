@@ -5,18 +5,18 @@ async function updateRules() {
     removeRuleIds: (await chrome.declarativeNetRequest.getDynamicRules()).map(rule => rule.id)
   });
 
-  // Create a single rule to redirect all .bitmap URLs to error.html (which now handles redirection)
+  // Create a single rule to redirect all .bitmap URLs to redirect.html
   const rules = [{
     id: 1,
     priority: 1,
     action: {
       type: 'redirect',
       redirect: {
-        regexSubstitution: chrome.runtime.getURL('src/pages/error.html?query=\\1')
+        regexSubstitution: chrome.runtime.getURL('src/pages/redirect.html?query=\\1')
       }
     },
     condition: {
-      regexFilter: '^https?://([^/:?#]+?)\\.bitmap(/|$)',
+      regexFilter: '^https?://([^/]+)\\.bitmap(/|$)',
       resourceTypes: ['main_frame']
     }
   }];
@@ -34,18 +34,10 @@ async function updateRules() {
 // Handle raw .bitmap navigations
 chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
   const rawUrl = details.url.toLowerCase();
-  console.log('DEBUG: Processing URL:', details.url);
-  
   // Check for raw .bitmap inputs or search-like inputs
-  const queryMatch = rawUrl.match(/^(?:https?:\/\/)?([^:/?#]+)\.bitmap(?:[?/#].*)?$/);
+  const queryMatch = rawUrl.match(/^([^:/?#]+)\.bitmap(?:[?/#].*)?$/);
   const searchMatch = rawUrl.match(/[?&]q=([^&]*)\.bitmap(?:[&#].*)?$/);
-  
-  console.log('DEBUG: queryMatch result:', queryMatch);
-  console.log('DEBUG: searchMatch result:', searchMatch);
-  
   const query = queryMatch ? queryMatch[1] : (searchMatch ? decodeURIComponent(searchMatch[1]) : '');
-
-  console.log('DEBUG: Final extracted query:', query);
 
   if (!query) {
     console.log('No valid .bitmap query found in:', rawUrl);
@@ -53,9 +45,9 @@ chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
   }
 
   console.log('Intercepted .bitmap navigation:', query);
-  // Redirect to error.html with query (error.js handles all redirect and error logic)
-  chrome.tabs.update(details.tabId, { url: chrome.runtime.getURL(`src/pages/error.html?query=${encodeURIComponent(query)}`) });
-}, { url: [{ urlMatches: "^(?:https?://)?[^:/?#]+\\.bitmap.*$" },{ urlMatches: ".*[?&]q=[^&]*\\.bitmap.*$" }] });
+  // Redirect to redirect.html with query (redirect.js handles all registry logic fresh)
+  chrome.tabs.update(details.tabId, { url: chrome.runtime.getURL(`src/pages/redirect.html?query=${encodeURIComponent(query)}`) });
+}, { url: [{ urlMatches: '^[^:/?#]+\\.bitmap.*$' }, { urlMatches: '.*[?&]q=[^&]*\\.bitmap.*$' }] });
 
 // Initialize rules once on startup - no periodic refresh needed
 updateRules();
