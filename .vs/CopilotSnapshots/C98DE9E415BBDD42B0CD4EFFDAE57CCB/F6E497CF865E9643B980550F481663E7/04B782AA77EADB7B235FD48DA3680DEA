@@ -1,0 +1,129 @@
+﻿// test-redirect.js
+// Node.js test harness for redirect.js logic using real registry data
+
+const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
+const readline = require('readline');
+
+const REGISTRY_BASE_URL = 'https://raw.githubusercontent.com/thebitmaptoshi/BNS/main/Registry/';
+
+function sanitizeQuery(query) {
+  return query.replace(/[^a-zA-Z0-9-\.]/g, '').toLowerCase();
+}
+
+function isAddress(query) {
+  return /^\d+$/.test(query);
+}
+
+function getIndexFileForName(name) {
+  const firstChar = name[0];
+  if (/\d/.test(firstChar)) {
+    return 'index_0-9.txt';
+  }
+  return `index_${firstChar.toUpperCase()}.txt`;
+}
+
+function getBatchFileForAddress(address) {
+  const num = parseInt(address, 10);
+  const start = Math.floor(num / 10000) * 10000;
+  const end = start + 9999;
+  return `${start}-${end}.txt`;
+}
+
+async function fetchAddressForName(name) {
+  const indexFile = getIndexFileForName(name);
+  const url = `${REGISTRY_BASE_URL}${indexFile}`;
+  console.log(`Fetching index file: ${url}`);
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      console.log(`Failed to fetch index file: ${response.status}`);
+      return null;
+    }
+    const text = await response.text();
+    console.log('Index file contents (first 500 chars):', text.slice(0, 500));
+    const entries = text.match(/\([^\)]+\)/g) || [];
+    console.log(`Parsed ${entries.length} entries from index file.`);
+    for (const entry of entries) {
+      const [entryName, entryAddress] = entry.slice(1, -1).split(',');
+      // Sanitize entryName for comparison
+      console.log(`Checking entry: name='${entryName}', address='${entryAddress}', sanitized='${sanitizeQuery(entryName ? entryName.trim() : '')}'`);
+      if (entryName && entryAddress && sanitizeQuery(entryName.trim()) === name) {
+        console.log(`Match found for name: ${entryName} -> address: ${entryAddress}`);
+        return entryAddress.trim();
+      }
+    }
+    console.log('No match found for name in index file.');
+    return null;
+  } catch (e) {
+    console.log('Error fetching/parsing index file:', e);
+    return null;
+  }
+}
+
+async function fetchInscriptionIdForAddress(address) {
+  const batchFile = getBatchFileForAddress(address);
+  const url = `${REGISTRY_BASE_URL}${batchFile}`;
+  console.log(`Fetching batch file: ${url}`);
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      console.log(`Failed to fetch batch file: ${response.status}`);
+      return null;
+    }
+    const text = await response.text();
+    console.log('Batch file contents (first 500 chars):', text.slice(0, 500));
+    const entries = text.match(/\([^\)]+\)/g) || [];
+    console.log(`Parsed ${entries.length} entries from batch file.`);
+    for (const entry of entries) {
+      const [entryAddress, inscriptionId] = entry.slice(1, -1).split(',');
+      console.log(`Checking entry: address='${entryAddress}', inscriptionId='${inscriptionId}'`);
+      if (entryAddress && inscriptionId && entryAddress.trim() === address) {
+        console.log(`Match found for address: ${entryAddress} -> inscriptionId: ${inscriptionId}`);
+        return inscriptionId.trim();
+      }
+    }
+    console.log('No match found for address in batch file.');
+    return null;
+  } catch (e) {
+    console.log('Error fetching/parsing batch file:', e);
+    return null;
+  }
+}
+
+function getErrorUrl(query) {
+  return `chrome-extension://<id>/error.html?query=${encodeURIComponent(query)}`;
+}
+
+async function main() {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+  });
+  rl.question('Enter a .bitmap name or address: ', async (query) => {
+    rl.close();
+    if (!query) {
+      console.log(getErrorUrl('unknown'));
+      return;
+    }
+    const sanitizedQuery = sanitizeQuery(query);
+    let address = null;
+    let inscriptionId = null;
+    if (isAddress(sanitizedQuery)) {
+      address = sanitizedQuery;
+    } else {
+      address = await fetchAddressForName(sanitizedQuery);
+      if (!address) {
+        console.log(getErrorUrl(sanitizedQuery));
+        return;
+      }
+    }
+    inscriptionId = await fetchInscriptionIdForAddress(address);
+    if (inscriptionId) {
+      console.log(`https://ordinals.com/content/${inscriptionId}`);
+    } else {
+      console.log(getErrorUrl(sanitizedQuery));
+    }
+  });
+}
+
+main();

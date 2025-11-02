@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Bitmap Re-direct",
-  "version": "1.1",
-  "description": "Redirects .bitmap URLs to ordinals content based on an index of the 1st 907k bitmaps",
+  "version": "1.4",
+  "description": "Redirects .bitmap URLs to ordinals content based on a JSON index of the 1st 907k bitmaps",
   "permissions": [
     "declarativeNetRequest",
     "declarativeNetRequestFeedback",
@@ -12,11 +12,24 @@
     "<all_urls>"
   ],
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "src/background/service-worker.js"
+  },
+  "icons": {
+    "16": "icon/unoreverse.png",
+    "32": "icon/unoreverse.png",
+    "48": "icon/unoreverse.png",
+    "128": "icon/unoreverse.png"
   },
   "web_accessible_resources": [
     {
-      "resources": ["error.html", "redirect.html", "error.js", "redirect.js"],
+      "resources": [
+        "src/pages/error.html",
+        "src/pages/error.js",
+        "src/lib/constants.js",
+        "src/lib/parser.js",
+        "src/lib/api.js",
+        "src/lib/oci.js"
+      ],
       "matches": ["<all_urls>"]
     }
   ]

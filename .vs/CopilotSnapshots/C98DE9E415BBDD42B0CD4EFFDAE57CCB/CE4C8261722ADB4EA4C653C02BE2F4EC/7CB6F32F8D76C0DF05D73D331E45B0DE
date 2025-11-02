@@ -1,0 +1,111 @@
+﻿// test-redirect.js
+// Node.js test harness for redirect.js logic using real registry data
+
+const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
+const readline = require('readline');
+
+// --- Begin: Copy of logic from redirect.js, adapted for Node.js ---
+const REGISTRY_BASE_URL = 'https://raw.githubusercontent.com/thebitmaptoshi/BNS/main/Registry/';
+
+function sanitizeQuery(query) {
+  return query.replace(/[^a-zA-Z0-9-\.]/g, '').toLowerCase();
+}
+
+function isAddress(query) {
+  return /^\d+$/.test(query);
+}
+
+function getIndexFileForName(name) {
+  const firstChar = name[0];
+  if (/\d/.test(firstChar)) {
+    return 'index_0-9.txt';
+  }
+  return `index_${firstChar}.txt`;
+}
+
+function getBatchFileForAddress(address) {
+  const num = parseInt(address, 10);
+  const start = Math.floor(num / 10000) * 10000;
+  const end = start + 9999;
+  return `${start}-${end}.txt`;
+}
+
+async function fetchAddressForName(name) {
+  const indexFile = getIndexFileForName(name);
+  const url = `${REGISTRY_BASE_URL}${indexFile}`;
+  try {
+    const response = await fetch(url);
+    if (!response.ok) return null;
+    const text = await response.text();
+    const entries = text.match(/\([^\)]+\)/g) || [];
+    for (const entry of entries) {
+      const [entryName, entryAddress] = entry.slice(1, -1).split(',');
+      if (entryName && entryAddress && entryName.trim().toLowerCase() === name) {
+        return entryAddress.trim();
+      }
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchInscriptionIdForAddress(address) {
+  const batchFile = getBatchFileForAddress(address);
+  const url = `${REGISTRY_BASE_URL}${batchFile}`;
+  try {
+    const response = await fetch(url);
+    if (!response.ok) return null;
+    const text = await response.text();
+    const entries = text.match(/\([^\)]+\)/g) || [];
+    for (const entry of entries) {
+      const [entryAddress, inscriptionId] = entry.slice(1, -1).split(',');
+      if (entryAddress && inscriptionId && entryAddress.trim() === address) {
+        return inscriptionId.trim();
+      }
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+// --- End: Copy of logic from redirect.js ---
+
+// Mock chrome.runtime.getURL
+function getErrorUrl(query) {
+  return `chrome-extension://<id>/error.html?query=${encodeURIComponent(query)}`;
+}
+
+async function main() {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+  });
+  rl.question('Enter a .bitmap name or address: ', async (query) => {
+    rl.close();
+    if (!query) {
+      console.log(getErrorUrl('unknown'));
+      return;
+    }
+    const sanitizedQuery = sanitizeQuery(query);
+    let address = null;
+    let inscriptionId = null;
+    if (isAddress(sanitizedQuery)) {
+      address = sanitizedQuery;
+    } else {
+      address = await fetchAddressForName(sanitizedQuery);
+      if (!address) {
+        console.log(getErrorUrl(sanitizedQuery));
+        return;
+      }
+    }
+    inscriptionId = await fetchInscriptionIdForAddress(address);
+    if (inscriptionId) {
+      console.log(`https://ordinals.com/content/${inscriptionId}`);
+    } else {
+      console.log(getErrorUrl(sanitizedQuery));
+    }
+  });
+}
+
+main();
